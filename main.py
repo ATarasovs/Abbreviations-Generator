@@ -3,23 +3,24 @@ import re
 import os
 import sys
 
-# Initialize global lists and dictionaries that will be used in functions
-# Lists
+# Initialize variables and dictionaries that will be used in functions
 formattedValues = list()
-valuesDict = dict()
 formattedWords = list()
+tempWordsList = list()
 abbreviations = list()
 updatedAbbreviations = list()
 allowedAbbreviations = list()
 allowedAbbreviationsList2 = list()
-
-# Dictionaries
 allowedAbbreviationsDict = dict()
 abbreviationsDict = dict()
+valuesDict = dict()
 
 def main(): # add here the name of the file to input by a user
+
+    wordsFileName = input("Please provide the name of the file without extension ")
+
     # Open files with words and values for each letter
-    wordsFile = open("dev.txt", "r")
+    wordsFile = open(wordsFileName + ".txt", "r")
     valuesFile = open("values.txt", "r")
 
     if wordsFile.mode == 'r' and valuesFile.mode == 'r':  # if both files were opened correctly
@@ -29,9 +30,8 @@ def main(): # add here the name of the file to input by a user
         valuesDict = createValuesDictionary(valuesList)  # function to create the dictionary of values
         allowedAbbreviationsDict = createAllowedAbbreviationsDict(wordsList)  # function to create the dictionary of values
         letterPositionList = getLetterPositionList(allowedAbbreviationsDict)
-        # letterPositionInWordList = getLetterPositionInWordList(allowedAbbreviationsDict)
         scoreResultsDict = getAbbreviationScores(allowedAbbreviationsDict, wordsList, valuesDict, letterPositionList)
-        writeResultsToFile(scoreResultsDict)
+        writeResultsToFile(scoreResultsDict, wordsFileName)
 
     wordsFile.close()
     valuesFile.close()
@@ -39,7 +39,6 @@ def main(): # add here the name of the file to input by a user
 def createValuesDictionary(valuesList):
     for item in valuesList:
         formattedValues.append(re.sub(r'[^\w]', '', item))
-
     for item in formattedValues:
         letter = item[0:1]
         score = item[1::]
@@ -51,6 +50,8 @@ def createAllowedAbbreviationsDict(wordsList):
     # Format words
     for word in wordsList:
         formattedWords.append(re.sub(r'[^\w]', '', word).upper())
+        tempWordsList.append(re.sub("-", " ", word))
+    wordsList = tempWordsList
     count = 0
 
     # Create all possible abbreviations for each word and add to dict
@@ -62,23 +63,20 @@ def createAllowedAbbreviationsDict(wordsList):
         abbreviationsDict.update({re.sub(r'[^\w\s]', '', wordsList[count]).upper(): list(abbreviations)})  # !!!! should set be used here??????
         abbreviations.clear()
         count = count + 1
-    # print(abbreviationsDict)
+
     # Remove all the duplicates between abbreviations of different words
     for key, value in abbreviationsDict.items():
         wordAbbreviationSet = set()
         for abbreviation in value:
             wordAbbreviationSet.add(abbreviation)
-        # print(wordAbbreviationSet)
 
         for abbreviation in wordAbbreviationSet:
             updatedAbbreviations.append(abbreviation)
-    # print(updatedAbbreviations)
 
     # Count how many times each abbreviation appears
     abbreviationsCountDict = dict()
     for abbreviation in updatedAbbreviations:
         abbreviationsCountDict[abbreviation] = abbreviationsCountDict.get(abbreviation, 0) + 1
-    # print(abbreviationsCountDict)
 
     # Create a list with only allowed abbreviations (abbreviations that appear only once)
     for key, value in abbreviationsCountDict.items():
@@ -92,7 +90,6 @@ def createAllowedAbbreviationsDict(wordsList):
             if abbreviation in allowedAbbreviations:
                 wordAllowedAbbreviations.append(abbreviation)
         allowedAbbreviationsDict.update({key: wordAllowedAbbreviations})
-    print(allowedAbbreviationsDict)
 
     return allowedAbbreviationsDict
 
@@ -121,32 +118,15 @@ def getLetterPositionList(allowedAbbreviationsDict):
         letterPositionList.append(tempLetterPositionList)
     return letterPositionList
 
-# def getLetterPositionInWordList(allowedAbbreviationsDict):
-#     letterPositionInWordList = list()
-#     for key, value in allowedAbbreviationsDict.items():
-#         tempLetterPositionList = list()
-#         splitWordsList = key.split(" ")
-#         letterPositionCount = 0
-#         for word in splitWordsList:
-#             for letter in word:
-#                 tempLetterPositionList.append([letter, letterPositionCount])
-#                 letterPositionCount += 1
-#         letterPositionInWordList.append(tempLetterPositionList)
-#     return letterPositionInWordList
-
-
 def getAbbreviationScores(abbreviationsDict, wordsList, valuesDict, letterPositionList):
-    # print(letterPositionList)
     count = 0
     scoreResultsDict = dict()
     for key, value in abbreviationsDict.items(): # get key values for each word where key is word and value is abbreviation(s)
         if len(value) > 1: # if there is more than 1 abbreviation
             lowestAbbreviationsList = list()
             previousAbbreviationScore = sys.maxsize
-            usedLettersInAbbreviationsList = list()
             for abbreviation in value:  # foreach abbreviation
                 tempUsedLettersInAbbreviationsList = list()
-                # print(abbreviation)
                 abbreviationScore = 0
                 abbreviationLetterCount = 0
 
@@ -163,14 +143,12 @@ def getAbbreviationScores(abbreviationsDict, wordsList, valuesDict, letterPositi
                                     abbreviationScore = abbreviationScore + int(score)
                         abbreviationLetterCount += 1
                         if abbreviationLetterCount == 3: # if all three abbreviation letters were checked
-                            # print(abbreviationScore)
                             if abbreviationScore <= previousAbbreviationScore:
                                 if abbreviationScore == previousAbbreviationScore:
                                     lowestAbbreviationsList.append(abbreviation)
                                 if abbreviationScore < previousAbbreviationScore:
                                     lowestAbbreviationsList = list()
                                     lowestAbbreviationsList.append(abbreviation)
-                                # scoreResultsDict.update({wordsList[count]: abbreviation})
                                     previousAbbreviationScore = abbreviationScore
                             break
             lowestAbbreviationsSet = set(lowestAbbreviationsList)
@@ -181,11 +159,10 @@ def getAbbreviationScores(abbreviationsDict, wordsList, valuesDict, letterPositi
         else:
             scoreResultsDict.update({wordsList[count]: value[0]})
         count += 1
-    # print(scoreResultsDict)
     return scoreResultsDict
 
-def writeResultsToFile(result):
-    fileName = "names_abbrevs.txt"
+def writeResultsToFile(result, wordsFileName):
+    fileName = wordsFileName + "_abbrevs" + ".txt"
     if os.path.exists(fileName): # if file exists
         os.remove(fileName) # delete
 
@@ -198,7 +175,7 @@ def writeResultsToFile(result):
             resultsFile.write(value)
             resultsFile.write("\n")
 
-        resultsFile.close()
+    resultsFile.close()
 
 if __name__== "__main__":
     main()
