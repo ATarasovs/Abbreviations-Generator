@@ -84,7 +84,7 @@ def createAllowedAbbreviationsDict(wordsList):
         abbreviationsDict.update({re.sub(r'[^\w\s]', '', wordsList[count]).upper(): list(abbreviations)})
         abbreviations.clear()
         count += 1
-
+    print(abbreviationsDict)
     # Remove all the duplicates between abbreviations of different words and add to updatedAbbreviations list
     for key, value in abbreviationsDict.items():
         wordAbbreviationSet = set()
@@ -93,6 +93,7 @@ def createAllowedAbbreviationsDict(wordsList):
 
         for abbreviation in wordAbbreviationSet:
             updatedAbbreviations.append(abbreviation)
+    print(updatedAbbreviations)
 
     # Count how many times each abbreviation appears
     abbreviationsCountDict = dict()
